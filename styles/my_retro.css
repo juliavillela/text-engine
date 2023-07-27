@@ -1,0 +1,102 @@
+@font-face{
+    font-family: 'Apple II';
+    src: url('../fonts/font.ttf');
+  }
+
+:root{
+    --main-text-color: #77c067;
+    --main-text-glow:  #9af5852d;
+    --bg-color: #1f0b00;
+}
+  
+  body {
+    color: var(--main-text-color);
+    font-size: 2.2vh;
+    font-family: 'Apple II';
+    line-height: 4vh;
+    /* screen glow */
+    background-image: radial-gradient(
+      #424242, black 120%
+    );
+    /* text glow */
+    text-shadow: 0 0 5px var(--main-text-glow);
+  }
+  
+  /* scanlines */
+  body::after {
+    content: '';
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: repeating-linear-gradient(rgba(255, 78, 0, 0.03) 0.5vh, rgba(0, 0, 0, 0.05) 0.8vh);
+    z-index: -1;
+  }
+  
+  /* scrollbar */
+  ::-webkit-scrollbar {
+    width: 1vw;
+  }
+  
+  ::-webkit-scrollbar-track {
+    background: #000;
+  }
+  
+  ::-webkit-scrollbar-thumb {
+    background: #000;
+  }
+  
+  .img {
+    white-space: pre;
+    display: inline-block;
+    position: relative;
+    left: 50%;
+    transform: translateX(-50%);
+  }
+  
+  #output {
+    padding: 2vw 2vw 0 2vw;
+    max-width: 70ch;
+  }
+  
+  #output div {
+    margin-bottom: 1vw;
+  }
+  
+  .input {
+    display: flex;
+  }
+  
+  a {
+    color: var(--main-text-color);
+  }
+  
+  #input {
+    height: 4vh;
+    width: 98.5vh;
+    color: var(--main-text-color);
+    background: transparent;
+    font-size: 2vh;
+    font-family: "Apple II";
+    border: none;
+    position: relative;
+    bottom: 0.175vh;
+    margin-left: .5vw;
+  }
+  
+  span {
+    margin-left: 2vw;
+  }
+  
+  #input:focus {
+    outline: none;
+  }
+  
+  @keyframes blink {
+    0% {background: var(--main-text-color);}
+    49% {background: var(--main-text-color);}
+    60% {background: var(--main-text-color);}
+    99% {background: transparent;}
+    100% {background: var(--main-text-color);}
+  }
