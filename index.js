@@ -745,12 +745,17 @@ let applyInput = (input) => {
   };
 
   let values = val.split(' ')
+  
+  // articles : will be removed for most commands
+  let articles = ['a', 'an', 'the']
+  // commands that take literal arguments
+  let takeLiteralArgs= ['say', 'load', 'export', 'import', 'save']
 
   // remove articles
   // (except for the say command, which prints back what the user said)
   // (and except for meta commands to allow save names such as 'a')
-  if (values[0] !== 'say' && isNotSaveLoad(values[0])) {
-    values = values.filter(arg => arg !== 'a' && arg !== 'an' && arg != 'the');
+  if (!takeLiteralArgs.includes(values[0])) {
+    values = values.filter(arg => !articles.includes(arg));
   }
 
   const [command, ...args] = values;
