@@ -32,6 +32,7 @@ const newDiskTemplate = () => ({
 
               // Update the axe's description.
               getItem('axe').desc = `You USED it to cut the VINES, unblocking the door.`;
+              room.desc = "There's a door to the NORTH that leads to a florest clearing"
             } else {
               println(`There is nothing to use the axe on.`);
             }

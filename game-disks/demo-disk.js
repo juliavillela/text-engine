@@ -33,9 +33,9 @@ const demoDisk = () => ({
         {
           name: ['monstera', 'plant', 'swiss cheese'], // player can refer to this item by any of these names
           desc: `Sometimes called a Swiss Cheese plant, no office is complete without one. It has lovely, large leaves. This is the biggest you\'ve ever seen.
-
           There's **SOMETHING SHINY** in the pot.`,
           block: `It's far too large for you to carry.`, // optional reason player cannot pick up this item
+          shakeCount: 0,
           // when player looks at the plant, they discover a shiny object which turns out to be a key
           onLook: () => {
             if (getItem('shiny')) {
@@ -86,6 +86,47 @@ const demoDisk = () => ({
               },
             });
           },
+          onShake: () =>{
+            const item = getItem('monstera')
+            const foyer = getRoom('foyer') 
+            if (item.shakeCount == 0){
+              println(`leaves move around and some dust falls off. `)
+              item.shakeCount ++
+              return
+            }
+            if (item.shakeCount == 1){
+              item.shakeCount ++
+              println(`leaves move around and some dust falls off. The room is filled with a sweet smell`)
+              return
+            }
+            
+            if (item.shakeCount == 2){
+              item.shakeCount ++
+              println(`leaves move around and some dust falls off.  something seems loose up there.`)
+              return
+            }
+
+            if (item.shakeCount === 3){
+              const monsteraFruit = {
+                name: ['ball', 'orange'],
+                desc: `a big round orange-reddish fruit that smells like a blend of yogurt and peach`,
+                isTakeable:true,
+                onLook: () => {
+                  const fruit = getItem('ball')
+                  fruit.name = ['fruit',  ...fruit.name]
+                  return fruit.desc
+                }
+              }
+              foyer.items.push(monsteraFruit)
+              //reset onShake
+              item.onShake = `enough is enough. stop shaking the poor plant.`
+              
+              println(`something big and heavy falls to the ground with a thump.
+              it misses your head by a couple of inches, then rools to the edge of the room.
+              it looks like an orange **ball**
+              `)
+            }
+          }
         },
         {
           name: 'dime',
@@ -491,5 +532,42 @@ const unlock = () => {
   println(`All **exits** have been unblocked!`);
 };
 
+const shakeItem = (name) => {
+  const item = getItem(name)
+  if(!item){
+    println(`there is no ${item} to be shaken.`)
+    return
+  }
+  if (Object.hasOwn(item, 'onShake')){
+    if(typeof item.onShake === 'function'){
+      item.onShake({disk, println, getRoom, enterRoom, item})
+    } else if(typeof item.onShake === 'string'){
+      println(item.onShake)
+    }
+  } else {
+    println(`${name} cannot be shaken`)
+  }
+}
+
+// display help menu
+help = () => {
+  const instructions = `The following commands are available:
+    LOOK:           'look at key'
+    TAKE:           'take book'
+    SHAKE:          'shake thing'
+    GO:             'go north'
+    USE:            'use door'
+    TALK:           'talk to mary'
+    ITEMS:          list items in the room
+    CHARS:          list characters in the room
+    INV:            list inventory items
+    SAVE/LOAD:      save current game, or load a saved game (in memory)
+    IMPORT/EXPORT:  save current game, or load a saved game (on disk)
+    HELP:   this help menu
+  `;
+  println(instructions);
+};
+
 // attach it to the zero-argument commands object on the disk
 commands[0] = Object.assign(commands[0], {unlock});
+commands[1] = Object.assign(commands[1], {shake:shakeItem})
