@@ -252,33 +252,33 @@ function genericLook(data){
   println(response)
 }
 
-// list available exits
-let go = () => {
-  const room = getRoom(disk.roomId);
-  const exits = room.exits.filter(exit => !exit.isHidden);
+// // list available exits
+// let go = () => {
+//   const room = getRoom(disk.roomId);
+//   const exits = room.exits.filter(exit => !exit.isHidden);
 
-  if (!exits) {
-    println(lit_s.go.noExits());
-    return;
-  }
+//   if (!exits) {
+//     println(lit_s.go.noExits());
+//     return;
+//   }
 
-  println(lit_s.go.exits());
-  exits.forEach((exit) => {
-    const rm = getRoom(exit.id);
+//   println(lit_s.go.exits());
+//   exits.forEach((exit) => {
+//     const rm = getRoom(exit.id);
 
-    if (!rm) {
-      return;
-    }
+//     if (!rm) {
+//       return;
+//     }
 
-    const dir = getName(exit.dir).toUpperCase();
-    // include room name if player has been there before
-    const directionName = rm.visits > 0
-      ? `${dir} - ${rm.name}`
-      : dir
+//     const dir = getName(exit.dir).toUpperCase();
+//     // include room name if player has been there before
+//     const directionName = rm.visits > 0
+//       ? `${dir} - ${rm.name}`
+//       : dir
 
-    println(`${bullet} ${directionName}`);
-  });
-};
+//     println(`${bullet} ${directionName}`);
+//   });
+// };
 
 // find the exit with the passed direction in the given list
 // string, array -> exit
@@ -301,47 +301,47 @@ let shortcuts = {
   sw: 'southwest',
 };
 
-// go the passed direction
-// string -> nothing
-let goDir = (dir) => {
-  const room = getRoom(disk.roomId);
-  const exits = room.exits;
+function genericGo(data){
+  console.log("GO CMD")
+  // tokenize exits
+  const room = context.currRoom()
+  let exit;
+  for(let e of room.exits){
+      const dirStrs = typeof e.dir === 'object'? e.dir : [e.dir]
+      let exitRoom = getRoom(e.id)
+      let roomStrs = exitRoom["name"]
+      if (typeof roomStrs === 'string') { roomStrs = [roomStrs]}
+      const exitStrs = dirStrs.concat(roomStrs)
+      const token = tokenize(exitStrs)
 
-  if (!exits) {
-    println(lit_s.goDir.noExits());
-    return;
+      if (data.str.search(token) !== -1){
+          exit = e
+      }
   }
-
-  const nextRoom = getExit(dir, exits);
-
-  if (!nextRoom) {
-    // check if the dir is a shortcut
-    if (shortcuts[dir]) {
-      goDir(shortcuts[dir]);
-    } else {
-      println(lit_s.goDir.noExitInDir());
-    }
-    return;
+  if(exit){
+      // exit has no room id
+      const nextRoomId = exit.id
+      if(!nextRoomId){
+          println(`this leads nowhere`)
+      } else if (exit.block){
+          println(exit.block)
+      } else {
+          enterRoom(exit.id)
+      }
+      return;
+  } else {
+      const curRoom = tokenize(room.name)
+      if (data.str.search(curRoom) !== -1){
+        println(`you are already in ${getName(room.name)}`)
+      } else if (data.item){
+        println(`you are now very close to ${getName(data.item.name)}`)
+      } else{
+        println(`you cant go there TBD make this better`)
+        return
+      }
   }
+}
 
-  if (nextRoom.block) {
-    println(nextRoom.block);
-    return;
-  }
-
-  enterRoom(nextRoom.id);
-};
-
-// shortcuts for cardinal directions
-// (allows player to type just e.g. 'n')
-let n = () => goDir('north');
-let s = () => goDir('south');
-let e = () => goDir('east');
-let w = () => goDir('west');
-let ne = () => goDir('northeast');
-let se = () => goDir('southeast');
-let nw = () => goDir('northwest');
-let sw = () => goDir('southwest');
 
 // if there is one character in the room, engage that character in conversation
 // otherwise, list characters in the room
@@ -635,15 +635,6 @@ let commands = [
     inv,
     i: inv, // shortcut for inventory
     inventory: inv,
-    go,
-    n,
-    s,
-    e,
-    w,
-    ne,
-    se,
-    sw,
-    nw,
     talk,
     t: talk, // shortcut for talk
     items,
@@ -660,7 +651,6 @@ let commands = [
   },
   // one argument (e.g. "go north", "take book")
   {
-    go: goDir,
     use: useItem,
     say: sayString,
     save: x => save(x),
@@ -689,7 +679,7 @@ let activeCommands = [
   // [exportSave, ["export"]],
   // [importSave, ["import"]],
 
-  // [goDir, ["go", "walk", "head north", "head south", "head west", "head east"]],
+  [genericGo, ["go", "walk", "head north", "head south", "head west", "head east"]],
   // [inv, ["inventory", "inv"]],
   [genericLook, ["take a look", "have a look", "look around", "look"]],
   // [talk, ["talk", "say", "mumble", "yell"]],
