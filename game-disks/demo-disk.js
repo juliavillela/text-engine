@@ -27,7 +27,7 @@ const demoDisk = () => ({
       // optional list of items in the room
       items: [
         {
-          name: 'tall window', // the item's name
+          name: ['tall window', 'window'], // the item's name
           desc: `All you can see are puffy white clouds over a blue sky.`, // description shown when player looks at the item
         },
         {
@@ -70,6 +70,8 @@ const demoDisk = () => ({
 
                 // now that we know it's a key, place that name first so the engine calls it by that name
                 key.name.unshift('silver key');
+                //with regex match key must be included
+                key.name.push('key')
 
                 // let's also update the description
                 key.desc = `It has a blue cap with the word "LAB" printed on it.`;
@@ -88,7 +90,7 @@ const demoDisk = () => ({
           },
         },
         {
-          name: 'dime',
+          name: ['dime', 'coin'],
           desc: `Wow, ten cents.`,
           isTakeable: true, // allow the player to TAKE this item
           onTake: () => println(`You bend down and pick up the tiny, shiny coin.
@@ -255,7 +257,7 @@ const demoDisk = () => ({
       ],
     },
     {
-      name: 'blue robot',
+      name: ['blue robot', 'robot'],
       roomId: 'lab',
       onTalk: () => println(`"I can tell you about making games with text-engine," they explain. "What would you like to know?"`),
       topics: [
@@ -384,7 +386,7 @@ const demoDisk = () => ({
       ],
     },
     {
-      name: 'red robot',
+      name: ['red robot', 'robot'],
       roomId: 'advanced',
       onTalk: () => println(`"I can tell you about the JavaScript functions available to you when you use text-engine," they explain. "What would you like to know about?"`),
       topics: [
