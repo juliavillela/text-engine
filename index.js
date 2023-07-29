@@ -19,6 +19,14 @@ let input = document.querySelector('#input');
 // the intent of this is to facilitate translating the game engine into other languages
 let lit_s= original_literal_values
 
+// context data - is updated on command call
+//items avaiable to user
+const context = {
+  avaiableItems:() =>  getRoom(disk.roomId).items.concat(disk.inventory).filter(i => !i.isHidden),
+  currRoom: () => getRoom(disk.roomId),
+  avaiableChars:() => getCharactersInRoom(disk.roomId)
+}
+
 // add any default values to the disk
 // disk -> disk
 let init = (disk) => {
@@ -212,56 +220,37 @@ let inv = () => {
   });
 };
 
-// show room description
-let look = () => {
-  const room = getRoom(disk.roomId);
-
-  if (typeof room.onLook === 'function') {
-    room.onLook({disk, println});
+function genericLook(data){
+  //interpret data - obj =  what/who is looked at
+  const room = context.currRoom()
+  const at_item = data.item || false
+  const at_char = data.char || false
+  let obj = at_item || at_char
+  // checks if obj can be room - if not: prints failure fallback
+  if(!at_item && !at_char && data.leftOver){
+    // check if leftover is about room
+    let room_name = data.leftOver.search(tokenize(room.name))
+    let room_lit = data.leftOver.search("room")
+    if (room_name == -1 && room_lit == -1){
+      println(`no such thing here!`)
+      return
+    } 
   }
-
-  println(room.desc)
-};
-
-// look in the passed way
-// string -> nothing
-let lookThusly = (str) => println(lit_s.lookThusly(str));
-
-// look at the passed item or character
-// array -> nothing
-let lookAt = (args) => {
-  const [_, name] = args;
-  const item = getItemInInventory(name) || getItemInRoom(name, disk.roomId);
-
-  if (item) {
-    // Look at an item.
-    if (item.desc) {
-      println(item.desc);
-    } else {
-      println(lit_s.lookAt.itemfallback());
-    }
-
-    if (typeof(item.onLook) === 'function') {
-      item.onLook({disk, println, getRoom, enterRoom, item});
-    }
+  obj = obj || room
+  // get response
+  // priority: onLook method; print description, print fallback
+  let response;
+  let fallback = ['nothing special', 'nothing interesting']
+  // if function: execute function then print
+  if (obj["onLook"] && typeof obj["onLook"] === 'function'){
+    obj["onLook"]({disk, println, room, getRoom, enterRoom, obj})
+    response = obj["desc"] || fallback
   } else {
-    const character = getCharacter(name, getCharactersInRoom(disk.roomId));
-    if (character) {
-      // Look at a character.
-      if (character.desc) {
-        println(character.desc);
-      } else {
-        println(lit_s.lookAt.charfallback());
-      }
-
-      if (typeof(character.onLook) === 'function') {
-        character.onLook({disk, println, getRoom, enterRoom, item});
-      }
-    } else {
-      println(lit_s.lookAt.fallback());
-    }
+    // if string, print str
+    response = obj["onLook"] || obj["desc"] || fallback
   }
-};
+  println(response)
+}
 
 // list available exits
 let go = () => {
@@ -497,54 +486,47 @@ let talkToOrAboutX = (preposition, x) => {
   }
 };
 
-// list takeable items in room
-let take = () => {
-  const room = getRoom(disk.roomId);
-  const items = (room.items || []).filter(item => item.isTakeable && !item.isHidden);
-
-  if (!items.length) {
-    println(lit_s.take.noItems());
-    return;
+function genericTake(data){
+  const room = context.currRoom()
+  console.log(room)
+  const item = data.item
+  // no item:
+  if(!item){
+      if(!data.leftOver){
+        println(`what do you want to ${data.str}?`)
+      } else if(data.char){
+          println(`that's rude. ${getName(data.char.name)} is not a thing!`)
+      } else{
+        println("you can't collect something that is not here.")
+      }
+      return
   }
-
-  println(lit_s.take.items());
-  items.forEach(item => println(`${bullet} ${getName(item.name)}`));
-};
-
-// take the item with the given name
-// string -> nothing
-let takeItem = (itemName) => {
-  const room = getRoom(disk.roomId);
-  const findItem = item => objectHasName(item, itemName);
-  let itemIndex = room.items && room.items.findIndex(findItem);
-
-  if (typeof itemIndex === 'number' && itemIndex > -1) {
-    const item = room.items[itemIndex];
-    if (item.isTakeable) {
-      disk.inventory.push(item);
-      room.items.splice(itemIndex, 1);
-
-      if (typeof item.onTake === 'function') {
-        item.onTake({disk, println, room, getRoom, enterRoom, item});
-      } else {
-        println(lit_s.takeItem.success(getName(item.name)));
-      }
-    } else {
-      if (typeof item.onTake === 'function') {
-        item.onTake({disk, println, room, getRoom, enterRoom, item});
-      } else {
-        println(item.block || lit_s.takeItem.failure());
-      }
-    }
+  // already taken
+  if(getItemInInventory(getKey(item))){
+      println("you already have it!")
+      return
+  }
+  
+  let response = `you cannot take that`
+  const takeable = item.isTakeable && !item.block
+  console.log(takeable)
+  if (takeable){
+      const itemKey = getKey(item)
+      console.log("itemKey: ",itemKey)
+      room.items = room.items.filter((i) => {return getKey(i) !== itemKey})
+      console.log(room.items)
+      disk.inventory.push(item)
+      response = `${getName(item.name)} is now in your inventory`
+  }
+  // an item can have an on_take function either way so:
+  if (item.onTake && typeof item.onTake === 'function'){
+      item.onTake({disk, println, room, getRoom, enterRoom, item})
   } else {
-    itemIndex = disk.inventory.findIndex(findItem);
-    if (typeof itemIndex === 'number' && itemIndex > -1) {
-      println(lit_s.takeItem.taken());
-    } else {
-      println(lit_s.takeItem.itemNotFound());
-    }
+      response = item.onTake || item.block || response
+      println(response)
   }
-};
+  
+}
 
 // list useable items in room and inventory
 let use = () => {
@@ -653,8 +635,6 @@ let commands = [
     inv,
     i: inv, // shortcut for inventory
     inventory: inv,
-    look,
-    l: look, // shortcut for look
     go,
     n,
     s,
@@ -666,8 +646,6 @@ let commands = [
     nw,
     talk,
     t: talk, // shortcut for talk
-    take,
-    get: take,
     items,
     use,
     chars,
@@ -682,31 +660,69 @@ let commands = [
   },
   // one argument (e.g. "go north", "take book")
   {
-    look: lookThusly,
     go: goDir,
-    take: takeItem,
-    get: takeItem,
     use: useItem,
     say: sayString,
     save: x => save(x),
     load: x => load(x),
     restore: x => load(x),
-    x: x => lookAt([null, x]), // IF standard shortcut for look at
+    // x: x => lookAt([null, x]), // IF standard shortcut for look at
     t: x => talkToOrAboutX('to', x), // IF standard shortcut for talk
     export: exportSave,
     import: importSave, // (ignores the argument)
   },
   // two+ arguments (e.g. "look at key", "talk to mary")
   {
-    look: lookAt,
     say(args) {
       const str = args.reduce((cur, acc) => cur + ' ' + acc, '');
       sayString(str);
     },
     talk: args => talkToOrAboutX(args[0], args[1]),
-    x: args => lookAt([null, ...args]),
+    // x: args => lookAt([null, ...args]),
   },
 ];
+
+let activeCommands = [
+  // [help, ["help"]],
+  // [save, ["save"]],
+  // [load, ["load"]],
+  // [exportSave, ["export"]],
+  // [importSave, ["import"]],
+
+  // [goDir, ["go", "walk", "head north", "head south", "head west", "head east"]],
+  // [inv, ["inventory", "inv"]],
+  [genericLook, ["take a look", "have a look", "look around", "look"]],
+  // [talk, ["talk", "say", "mumble", "yell"]],
+  [genericTake, ["get", "collect", "take"]],
+  // [use, ["use"]],
+] 
+
+
+//--- tokenizing
+/** returs a token that matches globaly
+ * @param {String|Array<String>} strs 
+ * @returns {RegExp}
+ */
+function tokenize(name){
+  let ts;
+  if (typeof name === "string"){
+    ts = "\\bTK\\b".replace("TK", name)
+  } else {
+    ts = name.map(s=> "\\bTK\\b".replace("TK", s))
+    ts = ts.join("|")
+  }
+  return RegExp(ts, "gi")
+}
+
+// key is the main name - 0 index name - for an item or char
+function getKey(itemObj){
+  const keyVal = itemObj['name'] || itemObj['dir']
+  const key = typeof keyVal === 'object' ? keyVal[0] : keyVal
+  return key
+}
+
+
+let tknCmds = activeCommands.map(cmd => {return [cmd[0], tokenize(cmd[1])]})
 
 // process user input & update game state (bulk of the engine)
 // accepts optional string input; otherwise grabs it from the input element
@@ -717,6 +733,8 @@ let applyInput = (input) => {
     && !cmd.toLowerCase().startsWith('import');
 
   input = input || getInput();
+  console.debug(`CONTEXT before input apply for ${input}`, context)
+
   inputs.push(input);
   inputs = inputs.filter(isNotSaveLoad);
   inputsPos = inputs.length;
@@ -725,13 +743,58 @@ let applyInput = (input) => {
   const val = input.toLowerCase();
   setInput(''); // reset input field
 
+  function parseInput(input, cmdTokens){
+
+    const str = input.toLowerCase()
+    const matches = {str: str}
+    //find command
+    for(let cmd of cmdTokens){
+        const m = str.match(cmd[1])
+        if(m){
+            matches.command = cmd[0]
+            const leftOver = str.replace(m[0], "")
+            matches.leftOver = leftOver.length? leftOver : null
+            break
+        }
+    }
+    if (!matches.leftOver){
+        delete matches.leftOver
+        return matches
+    }
+
+    function firstMatch(str, opts){
+        for (let o of opts){
+          const m = str.search(o[1])
+          if (m != -1){
+            return o[0]
+          }
+        }
+        return null
+      }
+    // get current context
+    const tknItems = context.avaiableItems().map(item => [item, tokenize(item.name)])
+    const tknChars = context.avaiableChars().map(char => [char, tokenize(char.name)])
+    console.log(tknChars)
+    matches.item = firstMatch(str, tknItems)
+    matches.char = firstMatch(str, tknChars)
+    return matches
+  }   
+
+  const matchedValues = parseInput(input, tknCmds)
+  console.log(matchedValues)
+
+  if(matchedValues.command){
+    matchedValues.command(matchedValues)
+    return
+  }
+
   const exec = (cmd, arg) => {
     if (cmd) {
       cmd(arg);
     } else if (disk.conversation) {
-      println(`Type the capitalized KEYWORD to select a topic.`);
+      println(lit_s.applyInput.conversation());
     } else {
-      println(`Sorry, I didn't understand your input. For a list of available commands, type HELP.`);
+      println(lit_s.applyInput.fallback());
     }
   };
 
@@ -749,10 +812,6 @@ let applyInput = (input) => {
 
   if (args.length === 1) {
     exec(commands[1][command], args[0]);
-  } else if (command === 'take' && args.length) {
-    // support for taking items with spaces in the names
-    // (just tries to match on the first word)
-    takeItem(args[0]);
   } else if (command === 'use' && args.length) {
     // support for using items with spaces in the names
     // (just tries to match on the first word)
