@@ -307,8 +307,10 @@ function genericGo(data){
   const room = context.currRoom()
   let exit;
   for(let e of room.exits){
+      console.log('exit: ', e)
       const dirStrs = typeof e.dir === 'object'? e.dir : [e.dir]
       let exitRoom = getRoom(e.id)
+      console.log('exit to room:', exitRoom)
       let roomStrs = exitRoom["name"]
       if (typeof roomStrs === 'string') { roomStrs = [roomStrs]}
       const exitStrs = dirStrs.concat(roomStrs)
@@ -723,7 +725,7 @@ let applyInput = (input) => {
     && !cmd.toLowerCase().startsWith('import');
 
   input = input || getInput();
-  console.debug(`CONTEXT before input apply for ${input}`, context)
+  console.debug(`CONTEXT before input apply for ${input}`, context.currRoom())
 
   inputs.push(input);
   inputs = inputs.filter(isNotSaveLoad);
