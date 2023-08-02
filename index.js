@@ -288,21 +288,7 @@ let getExit = (dir, exits) => exits.find(exit =>
     : exit.dir === dir
 );
 
-// shortcuts for cardinal directions
-// (allows player to type e.g. 'go n')
-let shortcuts = {
-  n: 'north',
-  s: 'south',
-  e: 'east',
-  w: 'west',
-  ne: 'northeast',
-  nw: 'northwest',
-  se: 'southeast',
-  sw: 'southwest',
-};
-
 function genericGo(data){
-  console.log("GO CMD")
   // tokenize exits
   const room = context.currRoom()
   let exit;
@@ -324,10 +310,13 @@ function genericGo(data){
       // exit has no room id
       const nextRoomId = exit.id
       if(!nextRoomId){
+        console.debug("generic take: case exit found; no next room")
           println(`this leads nowhere`)
       } else if (exit.block){
+        console.debug("generic take: case exit found: blocked")
           println(exit.block)
       } else {
+        console.debug("generic take: case exit found moved to next room:", exit.id)
           enterRoom(exit.id)
       }
       return;
@@ -343,7 +332,6 @@ function genericGo(data){
       }
   }
 }
-
 
 // if there is one character in the room, engage that character in conversation
 // otherwise, list characters in the room
@@ -501,33 +489,36 @@ function genericTake(data){
       } else{
         println("you can't collect something that is not here.")
       }
+      console.debug("generic take: case no item")
       return
   }
   // already taken
   if(getItemInInventory(getKey(item))){
       println("you already have it!")
+      console.debug("generic take: case item in inventory")
+
       return
   }
   
   let response = `you cannot take that`
   const takeable = item.isTakeable && !item.block
-  console.log(takeable)
   if (takeable){
-      const itemKey = getKey(item)
-      console.log("itemKey: ",itemKey)
+      const itemKey = getKey(item)  
       room.items = room.items.filter((i) => {return getKey(i) !== itemKey})
-      console.log(room.items)
       disk.inventory.push(item)
       response = `${getName(item.name)} is now in your inventory`
+      console.debug("generic take: case item is takable")
   }
   // an item can have an on_take function either way so:
   if (item.onTake && typeof item.onTake === 'function'){
       item.onTake({disk, println, room, getRoom, enterRoom, item})
+      console.debug("generic take: case item is not takable, but has onTake function")
   } else {
       response = item.onTake || item.block || response
       println(response)
+      console.debug("generic take: case item is not takable")
   }
-  
+  console.debug("generic take: case not caugth")
 }
 
 // list useable items in room and inventory
@@ -725,60 +716,61 @@ let applyInput = (input) => {
     && !cmd.toLowerCase().startsWith('import');
 
   input = input || getInput();
-  console.debug(`CONTEXT before input apply for ${input}`, context.currRoom())
 
   inputs.push(input);
   inputs = inputs.filter(isNotSaveLoad);
   inputsPos = inputs.length;
   println(`> ${input}`);
 
-  const val = input.toLowerCase();
-  setInput(''); // reset input field
+  let regexApply = (input) => {
+    function parseInput(input, cmdTokens){
 
-  function parseInput(input, cmdTokens){
-
-    const str = input.toLowerCase()
-    const matches = {str: str}
-    //find command
-    for(let cmd of cmdTokens){
-        const m = str.match(cmd[1])
-        if(m){
-            matches.command = cmd[0]
-            const leftOver = str.replace(m[0], "")
-            matches.leftOver = leftOver.length? leftOver : null
-            break
-        }
-    }
-    if (!matches.leftOver){
-        delete matches.leftOver
-        return matches
-    }
-
-    function firstMatch(str, opts){
-        for (let o of opts){
-          const m = str.search(o[1])
-          if (m != -1){
-            return o[0]
+      const str = input.toLowerCase()
+      const matches = {str: str}
+      //find command
+      for(let cmd of cmdTokens){
+          const m = str.match(cmd[1])
+          if(m){
+              matches.command = cmd[0]
+              const leftOver = str.replace(m[0], "")
+              matches.leftOver = leftOver.length? leftOver : null
+              break
           }
-        }
-        return null
       }
-    // get current context
-    const tknItems = context.avaiableItems().map(item => [item, tokenize(item.name)])
-    const tknChars = context.avaiableChars().map(char => [char, tokenize(char.name)])
-    console.log(tknChars)
-    matches.item = firstMatch(str, tknItems)
-    matches.char = firstMatch(str, tknChars)
-    return matches
-  }   
-
-  const matchedValues = parseInput(input, tknCmds)
-  console.log(matchedValues)
-
-  if(matchedValues.command){
-    matchedValues.command(matchedValues)
-    return
+      if (!matches.leftOver){
+          delete matches.leftOver
+          return matches
+      }
+  
+      function firstMatch(str, opts){
+          for (let o of opts){
+            const m = str.search(o[1])
+            if (m != -1){
+              return o[0]
+            }
+          }
+          return null
+        }
+      // get current context
+      const tknItems = context.avaiableItems().map(item => [item, tokenize(item.name)])
+      const tknChars = context.avaiableChars().map(char => [char, tokenize(char.name)])
+  
+      matches.item = firstMatch(str, tknItems)
+      matches.char = firstMatch(str, tknChars)
+      return matches
+    }
+    const matchedValues = parseInput(input, tknCmds)
+    console.debug("matched values for input:", matchedValues)
+  
+    if(matchedValues.command){
+      matchedValues.command(matchedValues)
+      return true
+    }
+    return false
   }
+  let originalApply = (input) => {
+    const val = input.toLowerCase();
+    setInput(''); // reset input field
 
   const exec = (cmd, arg) => {
     if (cmd) {
@@ -818,6 +810,12 @@ let applyInput = (input) => {
   } else {
     exec(commands[args.length][command], args);
   }
+  }
+  const tryRegex = regexApply(input)
+    if (!tryRegex){
+        originalApply(input)
+    }
+    setInput(''); // reset input field
 };
 
 // allows wrapping text in special characters so println can convert them to HTML tags
@@ -1007,15 +1005,18 @@ let enterRoom = (id) => {
   }
 
   println(room.img, 'img');
-
+  // prints room name with title.
   if (room.name) {
     println(`${getName(room.name)}`, 'room-name');
   }
-
-  if (room.visits === 0) {
-    println(room.desc);
+  //add support for enter from 
+  if (room.enterFrom){
+    println(room.enterFrom[disk.roomId])
+  } else {
+    if (room.visits === 0) {
+      println(room.desc);
+    }
   }
-
   room.visits++;
 
   disk.roomId = id;
