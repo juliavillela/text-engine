@@ -252,6 +252,13 @@ function genericLook(data){
   println(response)
 }
 
+function genericList(data){
+  // list exits
+  // list items in room
+  // list items in inventory
+
+}
+
 // // list available exits
 // let go = () => {
 //   const room = getRoom(disk.roomId);
@@ -485,7 +492,7 @@ function genericTake(data){
       if(!data.leftOver){
         println(`what do you want to ${data.str}?`)
       } else if(data.char){
-          println(`that's rude. ${getName(data.char.name)} is not a thing!`)
+          println(`that's rude. ${getName(data.char.name)} is not a thing you can take!`)
       } else{
         println("you can't collect something that is not here.")
       }
@@ -1009,14 +1016,19 @@ let enterRoom = (id) => {
   if (room.name) {
     println(`${getName(room.name)}`, 'room-name');
   }
-  //add support for enter from 
-  if (room.enterFrom){
-    println(room.enterFrom[disk.roomId])
-  } else {
+
+  let onEnterLine = ""
+  //add support for enterFrom 
+  if (room.enterFrom){ 
+    if(Object.hasOwn(room.enterFrom, disk.roomId)){
+      onEnterLine = room.enterFrom[disk.roomId]
+    } else {
     if (room.visits === 0) {
-      println(room.desc);
+      onEnterLine = room.desc;
+      }
     }
   }
+  println(onEnterLine)
   room.visits++;
 
   disk.roomId = id;
