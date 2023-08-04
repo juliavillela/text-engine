@@ -1,0 +1,26 @@
+<meta charset="utf-8">
+<!-- CSS styles -->
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.1/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-4bw+/aepP/YC94hEpVNVgiZdgIC5+VKNBQNGCHeKRQN+PtmoHDEXuppvnDJzQIu9" crossorigin="anonymous">
+<link id="styles" rel="stylesheet" type="text/css" href="style.css">
+
+<div id="disk-display">
+</div>
+
+<div id="disk-forms" class="container-md">
+
+</div>
+
+
+
+<!-- Include game engine: to avoid a mistake... TBD: make this better -->
+<!-- inlcude literals in a separate file  -->
+<script src="../src/index_literals.js"></script>
+<script src="../index.js"></script>
+<!-- <script src="../game_coomands.js"></script> -->
+<!-- Include build interface -->
+<script src="displayDisk.js"></script>
+
+<!-- Include game data ('disk') -->
+<script src="../game-disks/my_demo.js"></script>
+
+<script>displayDisk(myDemo())</script>
