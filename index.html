@@ -9,19 +9,24 @@
 </div>
 
 <!-- CSS styles -->
-<link id="styles" rel="stylesheet" type="text/css" href="styles/retro.css">
+<link id="styles" rel="stylesheet" type="text/css" href="styles/green_retro.css">
 
 <!-- Google Fonts -->
 <link href="https://fonts.googleapis.com/css2?family=Nanum+Gothic+Coding:wght@700&family=Work+Sans&display=swap" rel="stylesheet">
 
-<!-- inlcude literals in a separate file  -->
-<script src="vocabulary/index_literals.js"></script>
+<!-- import separate engine files  -->
+<script src="src/0_index_literals.js"></script>
+<script src="src/1_bottom_level.js"></script>
+<script src="src/2_accessDisk.js"></script>
+<script src="src/3_ui.js"></script>
+<script src="src/4_commands.js"></script>
+<script src="src/5_topLevel.js"></script>
 
 <!-- Include game engine -->
-<script src="index.js"></script>
+<!-- <script src="index.js"></script> -->
 
 <!-- Include game data ('disk') -->
-<script src="game-disks/demo-disk.js"></script>
+<script src="game-disks/my_demo.js"></script>
 
 <!-- Load disk into engine -->
-<script>loadDisk(demoDisk);</script>
+<script>loadDisk(myDemo);</script>

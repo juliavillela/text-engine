@@ -687,7 +687,6 @@ let activeCommands = [
   // [use, ["use"]],
 ] 
 
-
 //--- tokenizing
 /** returs a token that matches globaly
  * @param {String|Array<String>} strs 
@@ -711,7 +710,6 @@ function getKey(itemObj){
   return key
 }
 
-
 let tknCmds = activeCommands.map(cmd => {return [cmd[0], tokenize(cmd[1])]})
 
 // process user input & update game state (bulk of the engine)
@@ -724,11 +722,16 @@ let applyInput = (input) => {
 
   input = input || getInput();
 
-  inputs.push(input);
+  if (context.prompt){
+    inputs.push("$prompt:"+context.prompt+input)
+  } else {
+    inputs.push(input);
+  }
+
   inputs = inputs.filter(isNotSaveLoad);
   inputsPos = inputs.length;
   println(`> ${input}`);
-
+  
   let regexApply = (input) => {
     function parseInput(input, cmdTokens){
 
@@ -768,7 +771,15 @@ let applyInput = (input) => {
     }
     const matchedValues = parseInput(input, tknCmds)
     console.debug("matched values for input:", matchedValues)
-  
+    
+    if(context.prompt){
+      console.log(context.prompt)
+      let p = getPrompt(context.prompt)
+      console.log("propmt", p)
+      p["exec"](matchedValues)
+      return true
+    }
+
     if(matchedValues.command){
       matchedValues.command(matchedValues)
       return true
@@ -824,6 +835,23 @@ let applyInput = (input) => {
     }
     setInput(''); // reset input field
 };
+
+const prompts = [
+  {
+    id: "getUsername",
+    run: () => {
+      context.prompt = "getUsername"
+      println("How should i call you?")
+    },
+    exec: (data) => {
+      context.username = data.str
+      println(`ok, ${context.username}. nice to meet you.`)
+      delete context.prompt
+    }
+  }
+]
+
+let getPrompt = promptId => prompts.find(p=> p.id === promptId)
 
 // allows wrapping text in special characters so println can convert them to HTML tags
 // string, string, string -> string
@@ -1141,9 +1169,10 @@ let loadDisk = (uninitializedDisk) => {
   disk = init(typeof diskFactory === 'function' ? diskFactory() : diskFactory);
 
   // start the game
+  // getPrompt("getUsername").run()
   enterRoom(disk.roomId);
 
-  // focus on the input
+  // focus on the inputte
   input.focus();
 };
 
